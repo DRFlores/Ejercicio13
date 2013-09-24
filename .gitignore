@@ -1,0 +1,234 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define TAM 20
+#define ESC 27
+#define SI 1
+#define NO 0
+
+typedef struct
+{
+    long int dni;
+    char apellido[TAM],nombre[TAM];
+    double sueldo;
+} Empleado;
+
+typedef struct
+{
+    long int dni;
+    char apellido[TAM],nombre[TAM];
+    float promedio;
+} Alumno;
+
+void crearArchivosBinarios();
+void verBinarios();
+void actualizarEmpleados();
+
+int main()
+{
+    char op;
+    do
+    {
+        puts("\n\n"
+             "******************************************\n"
+             "|      SELECCIONE LA OPCION DESEADA\n"
+             "| \n"
+             "| 1) CREAR BINARIOS\n"
+             "| 2) MOSTRAR BINARIOS\n"
+             "| 3) ACTUALIZAR\n"
+             "| ESC- SALIR\n"
+             "| \n");
+        op=getch();
+        switch(op)
+        {
+        case '1':
+            crearArchivosBinarios();
+            break;
+        case '2':
+            verBinarios();
+            break;
+        case '3':
+            actualizarEmpleados();
+            break;
+        case ESC:
+            puts("\nSaliendo del programa...\n\nPresione una tecla para finalizar\n");
+            break;
+        default:
+            puts("\nLa opcion ingresada no es valida");
+        }
+    }
+    while(op!=ESC);
+
+    return 0;
+}
+
+/** Funcion para actualizar sueldos de empleados **/
+void actualizarEmpleados()
+{
+    FILE *docAlumnos,*docEmpleados;
+    Alumno aLeido;
+    Empleado eLeido;
+    int avance=NO; //al siguiente alumno
+
+    /** Apertura y verificacion de archivos **/
+    docEmpleados=fopen("empleados.bin","rb+");
+    docAlumnos=fopen("estudiantes.bin","rb");
+
+    if(!docAlumnos ||!docEmpleados)
+    {
+        puts("\n\nError en la lectura de archivos");
+        system("pause");
+        exit(1);
+    }
+    puts("Inicio de merge...");
+    /** Merge de archivo **/
+    fread(&aLeido,sizeof(Alumno),1,docAlumnos);
+    fread(&eLeido,sizeof(Empleado),1,docEmpleados);
+    while(!feof(docAlumnos))
+    {
+        if(aLeido.promedio>7)
+        {
+            puts("Buscando...");
+            while(!avance)
+            {
+                if(feof(docEmpleados)) /**Si no hay mas empleados**/
+                {
+                    puts("\nNo hay mas empleados");
+                    fclose(docAlumnos);
+                    fclose(docEmpleados);
+                    return;
+                }
+                puts("\nvemos si encontramos el registro");
+                if(aLeido.dni==eLeido.dni) /**Si encontramos el registro**/
+                {
+                    puts("\nEncontrado!!");
+                    eLeido.sueldo+=eLeido.sueldo*0.0728;
+                    fseek(docEmpleados,-1L*sizeof(Empleado),SEEK_CUR);
+                    fwrite(&eLeido,sizeof(Empleado),1,docEmpleados);
+                    fseek(docEmpleados,-1L*sizeof(Empleado),SEEK_CUR);
+                    avance=SI;
+                }
+                else if(strcmp(aLeido.apellido,eLeido.apellido)<0) /**Si el alumno no es empleado**/
+                {
+                    avance=SI;
+                    puts("\nEl alumno no es empleado");
+                }
+                fread(&eLeido,sizeof(Empleado),1,docEmpleados);
+            }
+            puts("Fuera del while de avance");
+        }
+        else puts("promedio menor a 7");
+        puts("\nPasamos al siguiente registro de alumno...\n");
+        fread(&aLeido,sizeof(Alumno),1,docAlumnos);
+        avance=NO;
+    }
+    puts("\nNo hay mas alumnos");
+    fclose(docAlumnos);
+    fclose(docEmpleados);
+
+}
+
+
+/** Funcion para crear los archivos binarios a partir de maestros en formato txt **/
+
+void crearArchivosBinarios()
+{
+    FILE *docAlumnos,*docEmpleados,*txtAlumnos,*txtEmpleados;
+    Alumno aLeido;
+    Empleado eLeido;
+
+    /** Apertura y verificacion de archivos de empleados **/
+    docEmpleados=fopen("empleados.bin","wb");
+    txtEmpleados=fopen("empleados.txt","rt");
+    if(!txtEmpleados)
+    {
+        puts("\n\nError al intentar abrir el archivo txt de empleados");
+        system("pause");
+        exit(1);
+    }
+    if(!docEmpleados)
+    {
+        puts("\n\nError al intentar crear el archivo binario de empleados");
+        system("pause");
+        exit(1);
+    }
+
+    /** Copia binaria del maestro txt de empleados **/
+    fscanf(txtEmpleados,"%ld %s %s %lf",&eLeido.dni,eLeido.apellido,eLeido.nombre,&eLeido.sueldo);
+    while(!feof(txtEmpleados))
+    {
+        fwrite(&eLeido,sizeof(Empleado),1,docEmpleados);
+        fscanf(txtEmpleados,"%ld %s %s %lf",&eLeido.dni,eLeido.apellido,eLeido.nombre,&eLeido.sueldo);
+    }
+    fclose(docEmpleados);
+    fclose(txtEmpleados);
+
+    /** Apertura y verificacion de archivos de alumnos **/
+    docAlumnos=fopen("estudiantes.bin","wb");
+    txtAlumnos=fopen("estudiantes.txt","rt");
+
+    if(!txtAlumnos)
+    {
+        puts("\n\nError al intentar abrir el archivo txt de alumnos");
+        system("pause");
+        exit(1);
+    }
+    if(!docAlumnos)
+    {
+        puts("\n\nError al intentar crear el archivo binario de alumnos");
+        system("pause");
+        exit(1);
+    }
+    /** Copia binaria del maestro txt de alumnos **/
+    fscanf(txtAlumnos,"%ld %s %s %f",&aLeido.dni,aLeido.apellido,aLeido.nombre,&aLeido.promedio);
+    while(!feof(txtEmpleados))
+    {
+        fwrite(&aLeido,sizeof(Alumno),1,docAlumnos);
+        fscanf(txtAlumnos,"%ld %s %s %f",&aLeido.dni,aLeido.apellido,aLeido.nombre,&aLeido.promedio);
+    }
+    fclose(docAlumnos);
+    fclose(txtAlumnos);
+    puts("Archivos convertidos exitosamente");
+    system("pause");
+}
+
+/** Funcion para visualizar los archivos binarios **/
+
+void verBinarios()
+{
+    FILE *docAlumnos,*docEmpleados;
+    Alumno aLeido;
+    Empleado eLeido;
+
+    /** Apertura y verificacion de archivos **/
+    docEmpleados=fopen("empleados.bin","rb");
+    docAlumnos=fopen("estudiantes.bin","rb");
+
+    if(!docAlumnos ||!docEmpleados)
+    {
+        puts("\n\nError en la lectura de archivos");
+        system("pause");
+        exit(1);
+    }
+
+
+    /** Mostramos alumnos **/
+    puts("\n\n\nAlumnos:");
+    fread(&aLeido,sizeof(Alumno),1,docAlumnos);
+    while(!feof(docAlumnos))
+    {
+        printf("%ld %s %s %.2f\n",aLeido.dni,aLeido.apellido,aLeido.nombre,aLeido.promedio);
+        fread(&aLeido,sizeof(Alumno),1,docAlumnos);
+    }
+    fclose(docAlumnos);
+
+    /** Mostramos empleados **/
+    puts("\n\n\nEmpleados:");
+    fread(&eLeido,sizeof(Empleado),1,docEmpleados);
+    while(!feof(docEmpleados))
+    {
+        printf("%ld %s %s %.2f\n",eLeido.dni,eLeido.apellido,eLeido.nombre,eLeido.sueldo);
+        fread(&eLeido,sizeof(Empleado),1,docEmpleados);
+    }
+    fclose(docEmpleados);
+}
