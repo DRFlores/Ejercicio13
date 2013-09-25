@@ -105,13 +105,14 @@ void actualizarEmpleados()
                     eLeido.sueldo+=eLeido.sueldo*0.0728;
                     fseek(docEmpleados,-1L*sizeof(Empleado),SEEK_CUR);
                     fwrite(&eLeido,sizeof(Empleado),1,docEmpleados);
-                    fseek(docEmpleados,-1L*sizeof(Empleado),SEEK_CUR);
+                    fseek(docEmpleados,0L,SEEK_CUR);
                     avance=SI;
                 }
                 else if(strcmp(aLeido.apellido,eLeido.apellido)<0) /**Si el alumno no es empleado**/
                 {
                     avance=SI;
                     puts("\nEl alumno no es empleado");
+                    fseek(docEmpleados,-1L*sizeof(Empleado),SEEK_CUR);
                 }
                 fread(&eLeido,sizeof(Empleado),1,docEmpleados);
             }
